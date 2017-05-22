@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FindCellTower_mg_cnt16003</string>
+    <string name="app_name">CellTowerFinder(cnt16003_PMG)</string>
     <string name="map_type_none">None</string>
     <string name="map_type_normal">Normal</string>
     <string name="map_type_terrain">Terrain</string>

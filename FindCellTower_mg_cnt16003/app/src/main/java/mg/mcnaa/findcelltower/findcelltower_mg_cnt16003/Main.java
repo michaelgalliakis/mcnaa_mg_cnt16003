@@ -9,10 +9,13 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -33,6 +36,9 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.util.Date;
+
 import FindCellTowerApiOperation.CellTowerLocManager;
 
 public class Main extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
@@ -41,62 +47,93 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
     private Geocoder geoCoder ;
     GoogleMap mGoogleMap;
     GoogleApiClient mGoogleApiClient;
-    Button bRefresh ;
+
+    ImageButton bRefresh ;
+    ImageButton bInfo ;
+    ImageButton bZoomCellTower ;
+    ImageButton bZoomGPS ;
+    ImageButton bTEI ;
+    TextView tStatus ;
+
+    Handler timerHandler = new Handler();
+    Runnable timerRunnable = new Runnable() {
+        @Override
+        public void run() {
+            refresh() ;
+            timerHandler.postDelayed(this, 5000);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        bRefresh = (Button) findViewById(R.id.refresh);
+
+        bRefresh = (ImageButton) findViewById(R.id.refresh);
+        bInfo = (ImageButton) findViewById(R.id.info);
+        bZoomCellTower = (ImageButton) findViewById(R.id.zoomcelltower);
+        bZoomGPS = (ImageButton) findViewById(R.id.zoomgps);
+        bZoomGPS.setTag("Enable");
+        bTEI = (ImageButton) findViewById(R.id.tei);
+        tStatus = (TextView) findViewById(R.id.status);
+
         bRefresh.setOnClickListener(this) ;
+        bZoomGPS.setOnClickListener(this) ;
+        bZoomCellTower.setOnClickListener(this) ;
         if (googleServicesAvailable()) {
             Toast.makeText(this, "Google Services are Available!", Toast.LENGTH_LONG).show();
             ctiMan = new CellTowerInfoManager((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE));
             geoCoder= new Geocoder(this);
             initMap();
+            timerHandler.postDelayed(timerRunnable, 0);
         } else {
             //No Google Maps Layout
         }
+    }
 
-
-        /*
-        if (CellTowerLocManager.getInstance().getCellTowerLocation().isStatusOK())
+    private void zoomOperation(boolean isGPSzoom)
+    {
+        if (isGPSzoom)
         {
-            double lat = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLat()) ;
-            double lon = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLon()) ;
-
-            Toast.makeText(this, "lat:"+lat, Toast.LENGTH_LONG).show();
-            Toast.makeText(this, "lon:"+lon, Toast.LENGTH_LONG).show();
+            bZoomGPS.setTag("Enable");
+            bZoomGPS.setImageResource(R.mipmap.zoomgps);
+            bZoomCellTower.setImageResource(R.mipmap.zoomcelltowerdis);
         }
-        */
+        else
+        {
+            bZoomGPS.setTag("Disable");
+            bZoomGPS.setImageResource(R.mipmap.zoomgpsdis);
+            bZoomCellTower.setImageResource(R.mipmap.zoomcelltower);
+        }
     }
 
     private boolean refreshIsBusy  = false;
     private void refresh()
     {
         if (!refreshIsBusy) {
-            refreshIsBusy = true ;
-            ctiMan.reload();
-            CellTowerLocManager.getInstance().loadCellTowerLocation(ctiMan.getMcc(),ctiMan.getMnc(),ctiMan.getCellLac(),ctiMan.getCellId());
-            Handler handler = new Handler();
-            handler.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    double lat = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLat());
-                    double lon = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLon());
-                    //Toast.makeText(this, "Lat : "+lat + " Lon : " +lon, Toast.LENGTH_LONG).show();
+            if (ctiMan.reload())
+            {
+                refreshIsBusy = true ;
+                CellTowerLocManager.getInstance().loadCellTowerLocation(ctiMan.getMcc(),ctiMan.getMnc(),ctiMan.getCellLac(),ctiMan.getCellId());
+                Handler handler = new Handler();
+                handler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        double lat = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLat());
+                        double lon = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLon());
+                        String locality = "";
+                        try {
+                            locality = geoCoder.getFromLocation(lat, lon, 1).get(0).getLocality();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
 
-                    String locality = "";
-                    try {
-                        locality = geoCoder.getFromLocation(lat, lon, 1).get(0).getLocality();
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                        setMarker(locality, lat, lon);
+                        tStatus.setText("Cell Tower[ID="+ctiMan.getCellId()+"] ("+ DateFormat.getDateTimeInstance().format(new Date())+")");
+                        refreshIsBusy = false ;
                     }
-
-                    setMarker(locality, lat, lon);
-                    refreshIsBusy = false ;
-                }
-            }, 3-+000);
-
+                }, 3000);
+            }
         }
         else
             Toast.makeText(this, "Refresh operation is busy", Toast.LENGTH_LONG).show();
@@ -161,26 +198,6 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
 
         marker = mGoogleMap.addMarker(options) ;
     }
-
-    private void goToLocation(double lat, double lng) {
-        LatLng ll = new LatLng(lat, lng);
-        CameraUpdate update = CameraUpdateFactory.newLatLng(ll);
-        mGoogleMap.moveCamera(update);
-        ;
-    }
-
-    private void goToLocationZoom(double lat, double lng, float zoom) {
-        LatLng ll = new LatLng(lat, lng);
-        CameraUpdate update = CameraUpdateFactory.newLatLngZoom(ll, zoom);
-        mGoogleMap.moveCamera(update);
-
-    }
-    /*
-    public void geoLocate(View view)
-    {
-        //EditText et = (EditText) findViewById(R.id.editText) ;
-
-    }*/
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -250,7 +267,14 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
         }
         else
         {
-            LatLng ll = new LatLng(location.getLatitude(),location.getLongitude());
+            LatLng ll ;
+            if (bZoomGPS.getTag().equals("Enable")){
+                ll = new LatLng(location.getLatitude(),location.getLongitude());
+            }
+            else{
+                ll = new LatLng(Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLat()),
+                        Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLon()));
+            }
             CameraUpdate update = CameraUpdateFactory.newLatLngZoom(ll,15) ;
             mGoogleMap.animateCamera(update);
         }
@@ -261,6 +285,14 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
         if (v==bRefresh)
         {
             refresh();
+        }
+        else if (v==bZoomCellTower)
+        {
+            zoomOperation(false) ;
+        }
+        else if (v==bZoomGPS)
+        {
+            zoomOperation(true) ;
         }
     }
 }

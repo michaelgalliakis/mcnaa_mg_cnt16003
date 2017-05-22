@@ -9,25 +9,25 @@ public class CellTowerLocation {
     public static final String TAG = CellTowerLocation.class.getSimpleName();
     @SerializedName("status")
     @Expose
-    private String status = "";
+    private String status ;
     @SerializedName("message")
     @Expose
     private String message;
     @SerializedName("balance")
     @Expose
-    private String balance;
+    private String balance ;
     @SerializedName("lat")
     @Expose
-    private String lat;
+    private String lat ;
     @SerializedName("lon")
     @Expose
-    private String lon;
+    private String lon ;
     @SerializedName("accuracy")
     @Expose
-    private String accuracy;
+    private String accuracy ;
     @SerializedName("help")
     @Expose
-    private String help;
+    private String help = "";
 
     public CellTowerLocation() {
         status = "Not Ready";
