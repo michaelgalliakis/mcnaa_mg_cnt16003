@@ -15,6 +15,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.os.Handler;
@@ -48,12 +49,14 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
     GoogleMap mGoogleMap;
     GoogleApiClient mGoogleApiClient;
 
-    ImageButton bRefresh ;
-    ImageButton bInfo ;
-    ImageButton bZoomCellTower ;
-    ImageButton bZoomGPS ;
-    ImageButton bTEI ;
-    TextView tStatus ;
+    private ImageButton bRefresh ;
+    private ImageButton bInfo ;
+    private ImageButton bZoomCellTower ;
+    private ImageButton bZoomGPS ;
+    private ImageButton bTEI ;
+    private TextView tStatus1 ;
+    private TextView tStatus2 ;
+    private ProgressBar pbCheckbar ;
 
     Handler timerHandler = new Handler();
     Runnable timerRunnable = new Runnable() {
@@ -75,13 +78,18 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
         bZoomGPS = (ImageButton) findViewById(R.id.zoomgps);
         bZoomGPS.setTag("Enable");
         bTEI = (ImageButton) findViewById(R.id.tei);
-        tStatus = (TextView) findViewById(R.id.status);
-
+        tStatus1 = (TextView) findViewById(R.id.status1);
+        tStatus2 = (TextView) findViewById(R.id.status2);
+        pbCheckbar = (ProgressBar) findViewById(R.id.checkbar);
+        pbCheckbar.setProgress(10) ;
         bRefresh.setOnClickListener(this) ;
         bZoomGPS.setOnClickListener(this) ;
         bZoomCellTower.setOnClickListener(this) ;
+        bTEI.setOnClickListener(this) ;
+        tStatus1.setText("") ;
+        tStatus2.setText("") ;
         if (googleServicesAvailable()) {
-            Toast.makeText(this, "Google Services are Available!", Toast.LENGTH_LONG).show();
+            //Toast.makeText(this, "Google Services are Available!", Toast.LENGTH_LONG).show();
             ctiMan = new CellTowerInfoManager((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE));
             geoCoder= new Geocoder(this);
             initMap();
@@ -110,10 +118,13 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
     private boolean refreshIsBusy  = false;
     private void refresh()
     {
+        tStatus2.setText("Last attempt to refresh ["+ DateFormat.getDateTimeInstance().format(new Date())+"]");
         if (!refreshIsBusy) {
             if (ctiMan.reload())
             {
                 refreshIsBusy = true ;
+                tStatus1.setText("Trying to find a Cell Tower...") ;
+                pbCheckbar.setVisibility(View.VISIBLE);
                 CellTowerLocManager.getInstance().loadCellTowerLocation(ctiMan.getMcc(),ctiMan.getMnc(),ctiMan.getCellLac(),ctiMan.getCellId());
                 Handler handler = new Handler();
                 handler.postDelayed(new Runnable() {
@@ -129,8 +140,12 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                         }
 
                         setMarker(locality, lat, lon);
-                        tStatus.setText("Cell Tower[ID="+ctiMan.getCellId()+"] ("+ DateFormat.getDateTimeInstance().format(new Date())+")");
+                        tStatus1.setText("Tower[CellID="+ctiMan.getCellId()+"][CellLac="+ctiMan.getCellLac()+"] \n"+
+                                "(MMC,MNC="+ctiMan.getMcc()+"," +ctiMan.getMnc()+")"+
+                                                "("+ DateFormat.getDateTimeInstance().format(new Date())+")");
+                        pbCheckbar.setVisibility(View.GONE);
                         refreshIsBusy = false ;
+
                     }
                 }, 3000);
             }
@@ -293,6 +308,9 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
         else if (v==bZoomGPS)
         {
             zoomOperation(true) ;
+        }
+        else if (v==bTEI)
+        {
         }
     }
 }

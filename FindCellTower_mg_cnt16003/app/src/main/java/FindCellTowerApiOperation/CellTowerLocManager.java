@@ -56,6 +56,13 @@ public class CellTowerLocManager {
                 Log.e(TAG, "Error while posting the log for Measurement: " + t.getMessage());
             }
         });
+
+        /*
+        //Debug
+        cellTowerLocation = new CellTowerLocation() ;
+        cellTowerLocation.setLat("38.0001894");
+        cellTowerLocation.setLon("23.6740257");
+        */
     }
     private void updateCellTowerLocation(CellTowerLocation ctl) {
         cellTowerLocation = ctl ;

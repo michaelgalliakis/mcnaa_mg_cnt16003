@@ -17,14 +17,15 @@
             android:id="@+id/mapFragment"
             android:name="com.google.android.gms.maps.MapFragment"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.70"
+            android:layout_height="0dp"
+            android:layout_weight="0.75"
             app:layout_constraintBottom_toBottomOf="parent"
             tools:layout_editor_absoluteX="0dp" />
 
         <LinearLayout
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="0.15"
             android:orientation="horizontal"
             app:layout_constraintBottom_toBottomOf="parent"
             tools:layout_editor_absoluteY="0dp">
@@ -65,19 +66,45 @@
                 app:srcCompat="@mipmap/tei" />
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/status"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="0dp"
             android:layout_weight="0.10"
-            android:text="TextView" />
+            android:orientation="horizontal">
 
-        <ProgressBar
-            android:id="@+id/checkbar"
-            style="?android:attr/progressBarStyle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.10" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight=".70"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/status1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.50"
+                    android:text="TextView"
+                    android:textColor="@android:color/holo_red_dark" />
+
+                <TextView
+                    android:id="@+id/status2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.50"
+                    android:text="TextView"
+                    android:textColor="@android:color/holo_green_dark" />
+
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/checkbar"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="wrap_content"
+                android:layout_weight=".30"
+                android:layout_height="match_parent"
+                />
+
+        </LinearLayout>
 
     </LinearLayout>
 
