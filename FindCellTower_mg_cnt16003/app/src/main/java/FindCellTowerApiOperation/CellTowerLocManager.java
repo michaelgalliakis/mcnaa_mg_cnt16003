@@ -30,24 +30,22 @@ public class CellTowerLocManager {
 
     }
 
-    public void loadCellTowerLocation(String mcc, String mnc, String lac, String cid) {
+    public void loadCellTowerLocation(String mcc, String mnc, int lac, int cid) {
 
         PostRequestCellTowLoc prctl = new PostRequestCellTowLoc(TOKEN,mcc,mnc,lac,cid);
-
 
         appService.getCellTowerLocation(prctl).enqueue(new Callback<CellTowerLocation>() {
             @Override
             public void onResponse(Call<CellTowerLocation> call, Response<CellTowerLocation> response) {
                 if (response.code() == 200) {
 
-                    Log.i(TAG, response.body().toString());
-
-                    Log.i(TAG, response.headers().toString());
-                    Log.i(TAG, response.body().toString());
-                    Log.i(TAG, response.message().toString());
+                    //Log.i(TAG, response.body().toString());
+                    //Log.i(TAG, response.headers().toString());
+                    //Log.i(TAG, response.body().toString());
+                    //Log.i(TAG, response.message().toString());
                     CellTowerLocation ctl = response.body() ;
                     Log.i(TAG, "Cell Tower Location loaded");
-                    instance.updateCellTowerLocation(ctl) ;
+                    getInstance().updateCellTowerLocation(ctl) ;
                 }
             }
 
@@ -57,12 +55,12 @@ public class CellTowerLocManager {
             }
         });
 
-        /*
+/*
         //Debug
         cellTowerLocation = new CellTowerLocation() ;
-        cellTowerLocation.setLat("38.0001894");
-        cellTowerLocation.setLon("23.6740257");
-        */
+        cellTowerLocation.setLat("38.004933");
+        cellTowerLocation.setLon("23.670017");
+*/
     }
     private void updateCellTowerLocation(CellTowerLocation ctl) {
         cellTowerLocation = ctl ;

@@ -12,6 +12,5 @@ import retrofit2.http.Query;
 public interface AppService {
     @POST("process.php")
     Call<CellTowerLocation> getCellTowerLocation(@Body PostRequestCellTowLoc prctl);
-
 }
 

@@ -17,7 +17,7 @@ public class PostRequestCellTowLoc {
     @Expose
     private Cells[] cells;
 
-    public PostRequestCellTowLoc(String token, String mcc, String mnc, String lac, String cid) {
+    public PostRequestCellTowLoc(String token, String mcc, String mnc, int lac, int cid) {
         this.token = token;
         this.mcc = mcc;
         this.mnc = mnc;
@@ -61,29 +61,29 @@ public class PostRequestCellTowLoc {
     public class Cells {
         @SerializedName("lac")
         @Expose
-        private String lac ;
+        private int lac ;
         @SerializedName("cid")
         @Expose
-        private String cid ;
+        private int cid ;
 
-        public Cells(String lac, String cid) {
+        public Cells(int lac, int cid) {
             this.lac = lac;
             this.cid = cid;
         }
 
-        public String getLac() {
+        public int getLac() {
             return lac;
         }
 
-        public void setLac(String lac) {
+        public void setLac(int lac) {
             this.lac = lac;
         }
 
-        public String getCid() {
+        public int getCid() {
             return cid;
         }
 
-        public void setCid(String cid) {
+        public void setCid(int cid) {
             this.cid = cid;
         }
 
