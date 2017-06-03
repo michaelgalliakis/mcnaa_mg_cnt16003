@@ -15,7 +15,6 @@ import java.util.Locale;
 public class DBHandler extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "CellTowerPoints.db" ;
     public static final String TABLE_NAME = "CellTowers" ;
-
     private static final SimpleDateFormat DATAFORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
 
     public static final String COL_1 = "CellID" ;
@@ -41,9 +40,8 @@ public class DBHandler extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL("CREATE TABLE " + TABLE_NAME + "(CellID INTEGER,CellLac INTEGER"+
-                    ",MCC INTEGER, MNC INTEGER,Lat REAL,Lon REAL,Info TEXT,Updatedate DATETIME,"+
+                    ",MCC TEXT, MNC TEXT,Lat REAL,Lon REAL,Info TEXT,Updatedate DATETIME,"+
                     "PRIMARY KEY (CellID,CellLac,MCC,MNC));");
-
     }
 
     @Override
@@ -92,7 +90,6 @@ public class DBHandler extends SQLiteOpenHelper {
             return true ;
     }
 
-
     public CellTowerManager getCellTower(int cellID,int cellLac,String mcc, String mnc)
     {
         SQLiteDatabase db = this.getWritableDatabase() ;
@@ -122,8 +119,7 @@ public class DBHandler extends SQLiteOpenHelper {
         return ctm ;
     }
 
-
-
+    /*
     public boolean updateCellTower(int cellID,int cellLac,int mcc, int mnc,float lat, float lon,String info)
     {
         String[] whereArgs = new String[] {
@@ -149,6 +145,7 @@ public class DBHandler extends SQLiteOpenHelper {
         else
             return true ;
     }
+    */
 
     //CellTowerManager(int cellId, int cellLac, String mcc, String mnc, double lat, double lon, String info, Date updatedate)
     public ArrayList<CellTowerManager> getAllCellTowers()
@@ -177,6 +174,7 @@ public class DBHandler extends SQLiteOpenHelper {
         Date date = new Date();
         return DATAFORMAT.format(date);
     }
+
     private static String getDateTime(Date date) {
         return DATAFORMAT.format(date);
     }

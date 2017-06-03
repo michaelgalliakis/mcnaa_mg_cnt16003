@@ -1,8 +1,6 @@
 package FindCellTowerApiOperation;
 
 import android.util.Log;
-
-import okhttp3.OkHttpClient;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -15,7 +13,6 @@ public class CellTowerLocManager {
     public static final String TOKEN = "9f9a8862d44ad0";
 
     private static CellTowerLocManager instance;
-
     private Retrofit retrofit ;
     private AppService appService ;
     private CellTowerLocation cellTowerLocation ;
@@ -30,41 +27,41 @@ public class CellTowerLocManager {
 
     }
 
-    public void loadCellTowerLocation(String mcc, String mnc, int lac, int cid) {
-
+    public boolean loadCellTowerLocation(String mcc, String mnc, int lac, int cid) {
         PostRequestCellTowLoc prctl = new PostRequestCellTowLoc(TOKEN,mcc,mnc,lac,cid);
-
-        appService.getCellTowerLocation(prctl).enqueue(new Callback<CellTowerLocation>() {
-            @Override
-            public void onResponse(Call<CellTowerLocation> call, Response<CellTowerLocation> response) {
-                if (response.code() == 200) {
-
-                    //Log.i(TAG, response.body().toString());
-                    //Log.i(TAG, response.headers().toString());
-                    //Log.i(TAG, response.body().toString());
-                    //Log.i(TAG, response.message().toString());
-                    CellTowerLocation ctl = response.body() ;
-                    Log.i(TAG, "Cell Tower Location loaded");
-                    getInstance().updateCellTowerLocation(ctl) ;
+        try{
+            appService.getCellTowerLocation(prctl).enqueue(new Callback<CellTowerLocation>() {
+                @Override
+                public void onResponse(Call<CellTowerLocation> call, Response<CellTowerLocation> response) {
+                    if (response.code() == 200) {
+                        CellTowerLocation ctl = response.body() ;
+                        //Log.i(TAG, "Cell Tower Location loaded");
+                        getInstance().updateCellTowerLocation(ctl) ;
+                    }
                 }
-            }
 
-            @Override
-            public void onFailure(Call<CellTowerLocation> call, Throwable t) {
-                Log.e(TAG, "Error while posting the log for Measurement: " + t.getMessage());
-            }
-        });
+                @Override
+                public void onFailure(Call<CellTowerLocation> call, Throwable t) {
+                    //Log.e(TAG, "Error while posting to the api" + t.getMessage());
+                }
+            });
+        }
+        catch(Exception ex)
+        {
+            return false ;
+        }
 
-/*
+        return true ;
+        /*
         //Debug
         cellTowerLocation = new CellTowerLocation() ;
         cellTowerLocation.setLat("38.004933");
         cellTowerLocation.setLon("23.670017");
-*/
+        */
     }
     private void updateCellTowerLocation(CellTowerLocation ctl) {
         cellTowerLocation = ctl ;
-        cellTowerLocation.printValues();
+        //cellTowerLocation.printValues();
     }
 
     public CellTowerLocation getCellTowerLocation() {

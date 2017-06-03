@@ -33,17 +33,8 @@ public class CellTowerLocation {
         status = "Not Ready";
     }
 
-    public CellTowerLocation(String status, String message, String balance, String lat, String lon, String accuracy, String help) {
-        this.status = status;
-        this.message = message;
-        this.balance = balance;
-        this.lat = lat;
-        this.lon = lon;
-        this.accuracy = accuracy;
-        this.help = help;
-    }
-
-    public void printValues() //Debug Tool:
+    /* Debug Tool:
+    public void printValues()
     {
         if (status.equals("ok")) {
             Log.i(TAG, status);
@@ -57,7 +48,7 @@ public class CellTowerLocation {
             Log.i(TAG, message);
             Log.i(TAG, help);
         }
-    }
+    } */
 
     public boolean isStatusOK()
     {
@@ -114,6 +105,7 @@ public class CellTowerLocation {
     public void setAccuracy(String accuracy) {
         this.accuracy = accuracy;
     }
+
     public String getHelp() {
         return help;
     }

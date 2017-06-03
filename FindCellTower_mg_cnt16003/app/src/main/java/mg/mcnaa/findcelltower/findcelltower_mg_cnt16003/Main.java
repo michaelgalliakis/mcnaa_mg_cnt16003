@@ -1,28 +1,22 @@
 package mg.mcnaa.findcelltower.findcelltower_mg_cnt16003;
 
-import android.app.Activity;
-import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Geocoder;
 import android.location.Location;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -45,10 +39,9 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 import FindCellTowerApiOperation.CellTowerLocManager;
-
-import static java.security.AccessController.getContext;
 
 public class Main extends AppCompatActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,
         LocationListener, View.OnClickListener {
@@ -65,181 +58,297 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
     private TextView tStatus1 ;
     private TextView tStatus2 ;
     private ProgressBar pbCheckbar ;
-
+    private TelephonyManager telephonyManager ;
     private DBHandler myDB ;
 
+    private HashMap<String,Marker> hmAllMarkers ;
+
     Handler timerHandler = new Handler();
+    private boolean mIsRunning = true;
     Runnable timerRunnable = new Runnable() {
         @Override
         public void run() {
+            if (!mIsRunning) {
+                return; // stop when told to stop
+            }
             refresh() ;
             timerHandler.postDelayed(this, 5000);
         }
     };
+    /*
+    void startRepeatingTask() {
+        mIsRunning = true;
+        timerRunnable.run();
+    }
+    */
+    void stopRepeatingTask() {
+        mIsRunning = false;
+        timerHandler.removeCallbacks(timerRunnable);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
-
-        if (checkPermissions())
+        if (getIntent().getExtras() != null && getIntent().getExtras().getBoolean("EXIT", false)) {
+            finish();
+        }
+        if (Shared.checkPermissions(this))
         {
-            setContentView(R.layout.activity_main);
-             /*int permissionCheck = ContextCompat.checkSelfPermission(this,
-                Manifest.permission.MAPS_RECEIVE); */
-
-        /*if (this.getResources().getConfiguration().orientation==2)
-           setContentView(R.layout.activity_main_land);
-        else
-            setContentView(R.layout.activity_main);*/
-
-            bRefresh = (ImageButton) findViewById(R.id.refresh);
-            bviewAllCellTowers = (ImageButton) findViewById(R.id.allCellTowers);
-            bZoomCellTower = (ImageButton) findViewById(R.id.zoomcelltower);
-            bZoomGPS = (ImageButton) findViewById(R.id.zoomgps);
-            bTEI = (ImageButton) findViewById(R.id.tei);
-            tStatus1 = (TextView) findViewById(R.id.status1);
-            tStatus2 = (TextView) findViewById(R.id.status2);
-            pbCheckbar = (ProgressBar) findViewById(R.id.checkbar);
-            pbCheckbar.setProgress(10) ;
-            bRefresh.setOnClickListener(this) ;
-            bZoomGPS.setOnClickListener(this) ;
-            bZoomCellTower.setOnClickListener(this) ;
-            bviewAllCellTowers.setOnClickListener(this) ;
-            bTEI.setOnClickListener(this) ;
-            tStatus1.setText("") ;
-            tStatus2.setText("") ;
-            alAllMarkers = new ArrayList<>();
-            myDB = new DBHandler(this) ;
-            //myDB.deleteAllCellTowers();
-            if (googleServicesAvailable()) {
-                //Toast.makeText(this, "Google Services are Available!", Toast.LENGTH_LONG).show();
-                ctiMan = new CellTowerManager((TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE));
+            if (Shared.googleServicesAvailable(this)) {
+                setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_NOSENSOR);
+                setContentView(R.layout.activity_main);
+                telephonyManager = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE) ;
+                ctiMan = new CellTowerManager();
                 geoCoder= new Geocoder(this);
                 initMap();
                 timerHandler.postDelayed(timerRunnable, 0);
-            } else {
-                //No Google Maps Layout
-            }
+
+                bRefresh = (ImageButton) findViewById(R.id.refresh);
+                bviewAllCellTowers = (ImageButton) findViewById(R.id.allCellTowers);
+                bZoomCellTower = (ImageButton) findViewById(R.id.zoomcelltower);
+                bZoomGPS = (ImageButton) findViewById(R.id.zoomgps);
+                bTEI = (ImageButton) findViewById(R.id.tei);
+                tStatus1 = (TextView) findViewById(R.id.status1);
+                tStatus2 = (TextView) findViewById(R.id.status2);
+                pbCheckbar = (ProgressBar) findViewById(R.id.checkbar);
+                //pbCheckbar.setProgress(10) ;
+
+                bRefresh.setOnClickListener(this) ;
+                bZoomGPS.setOnClickListener(this) ;
+                bZoomCellTower.setOnClickListener(this) ;
+                bviewAllCellTowers.setOnClickListener(this) ;
+                bTEI.setOnClickListener(this) ;
+
+                tStatus1.setText("") ;
+                tStatus2.setText("") ;
+                hmAllMarkers = new HashMap<>();
+                myDB = new DBHandler(this) ;
+            } else
+                Shared.fatalError(this,"Not google services available!");
         }
         else
-            setContentView(R.layout.no_rights);
-
-
+            Shared.fatalError(this,SplashScreen.STATUS_PER_MESS1);
     }
-
-    private boolean checkPermissions()
-    {
-        ArrayList<String> alPermissions = new ArrayList<>();
-        alPermissions.add("android.permission.ACCESS_NETWORK_STATE") ;
-        alPermissions.add("android.permission.INTERNET") ;
-        alPermissions.add("android.permission.READ_PHONE_STATE") ;
-        alPermissions.add("android.permission.ACCESS_COARSE_LOCATION") ;
-        alPermissions.add("android.permission.ACCESS_FINE_LOCATION") ;
-        alPermissions.add("android.permission.WRITE_EXTERNAL_STORAGE") ;
-        //alPermissions.add("mg.mcnaa.findcelltower.findcelltower_mg_cnt16003.permission.MAPS_RECEIVE") ;
-        //alPermissions.add("com.google.android.providers.gfs.permissions.READ_GSERVICES") ;
-        alPermissions.add("android.permission.ACCESS_FINE_LOCATION") ;
-        alPermissions.add("android.permission.ACCESS_COARSE_LOCATION") ;
-
-        Log.i("ΜΙΚΕ", Manifest.permission.MAPS_RECEIVE.toString());
-        for(String permission : alPermissions)
-            if(!(this.checkCallingOrSelfPermission(permission)==PackageManager.PERMISSION_GRANTED)){
-                return false ;
-        }
-
-        return true ;
-    }
-
 
     private boolean refreshIsBusy  = false;
+    private void setRefreshBusy(boolean isBusy)
+    {
+        refreshIsBusy = isBusy ;
+
+        if (refreshIsBusy)
+            pbCheckbar.setVisibility(View.VISIBLE);
+        else
+            pbCheckbar.setVisibility(View.GONE);
+    }
+    private boolean refreshFailed = false ;
     private void refresh()
     {
-        tStatus2.setText("Last attempt to refresh ["+ DateFormat.getDateTimeInstance().format(new Date())+"]");
+        changeStatus2("Τελευταία ανανέωση: ["+ DateFormat.getDateTimeInstance().format(new Date())+"]");
         if (!refreshIsBusy) {
-            if (ctiMan.reload())
+            if (ctiMan.reload(telephonyManager))
             {
-                refreshIsBusy = true ;
-                pbCheckbar.setVisibility(View.VISIBLE);
+                changeStatus1("Άλλαξε ο σταθμός βάσης!") ;
+                setRefreshBusy(true) ;
                 CellTowerManager ctm = myDB.getCellTower(ctiMan.getCellId(),ctiMan.getCellLac(),ctiMan.getMcc(),ctiMan.getMnc()) ;
+
                 if (curMarker!=null){
                     if (viewAllCellTowers)
-                        setMarker(curMarker.getTitle(),curMarker.getPosition().latitude,curMarker.getPosition().longitude) ;
+                        hmAllMarkers.put(ctiMan.getCellTowerAppID(), setMarker(curMarker.getTitle(),curMarker.getPosition().latitude,curMarker.getPosition().longitude)) ;
+                    //Σβήνεται ο παλιός σταθμός βάσης!
                     curMarker.remove();
                 }
 
                 if (ctm!=null)
                 {
+                    changeStatus1("O σταθμός βάσης βρέθηκε στην DB!") ;
                     ctiMan = ctm ;
                     curMarker=setMarker(ctiMan.getAllInfo(), ctiMan.getLat(), ctiMan.getLon(),true);
-                    tStatus1.setText("MTower[CellID="+ctiMan.getCellId()+"][CellLac="+ctiMan.getCellLac()+"] \n"+
+                    hmAllMarkers.put(ctiMan.getCellTowerAppID(),curMarker) ;
+                    changeStatus1("[DB] MTower[CellID="+ctiMan.getCellId()+"][CellLac="+ctiMan.getCellLac()+"] \n"+
                             "(MMC,MNC="+ctiMan.getMcc()+"," +ctiMan.getMnc()+")"+
                             "("+ DateFormat.getDateTimeInstance().format(new Date())+")");
-                    pbCheckbar.setVisibility(View.GONE);
-                    refreshIsBusy = false ;
+                    setRefreshBusy(false) ;
                 }
                 else
                 {
-                    tStatus1.setText("Trying to find a Cell Tower...") ;
-                    CellTowerLocManager.getInstance().loadCellTowerLocation(ctiMan.getMcc(),ctiMan.getMnc(),ctiMan.getCellLac(),ctiMan.getCellId());
-                    Handler handler = new Handler();
-                    handler.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            double lat = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLat());
-                            double lon = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLon());
-                            ctiMan.setLat(lat);
-                            ctiMan.setLon(lon);
-                            String info = "";
-                            try {
-                                info = "Locality: "+geoCoder.getFromLocation(lat, lon, 1).get(0).getLocality();
-                                info += "\n Address: "+ geoCoder.getFromLocation(lat, lon, 1).get(0).getAddressLine(0);
-                                info += "\n PostalCode: "+ geoCoder.getFromLocation(lat, lon, 1).get(0).getPostalCode();
-                            } catch (IOException e) {
-                                e.printStackTrace();
+                    changeStatus1("O σταθμός βάσης δεν βρέθηκε στην DB\nκαι γίνεται προσπάθεια εύρεσης του από το API...") ;
+                    if (CellTowerLocManager.getInstance().loadCellTowerLocation(ctiMan.getMcc(),ctiMan.getMnc(),ctiMan.getCellLac(),ctiMan.getCellId()))
+                    {
+                        Handler handler = new Handler();
+                        handler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                try
+                                {
+                                    double lat = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLat());
+                                    double lon = Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLon());
+
+                                    ctiMan.setLat(lat);
+                                    ctiMan.setLon(lon);
+
+                                    String info = "";
+                                    info = "Locality: "+geoCoder.getFromLocation(lat, lon, 1).get(0).getLocality();
+                                    info += "\nAddress: "+ geoCoder.getFromLocation(lat, lon, 1).get(0).getAddressLine(0);
+                                    info += "\nPostalCode: "+ geoCoder.getFromLocation(lat, lon, 1).get(0).getPostalCode();
+                                    ctiMan.setInfo(info);
+
+                                    curMarker= setMarker(ctiMan.getAllInfo(), lat, lon,true);
+                                    hmAllMarkers.put(ctiMan.getCellTowerAppID(),curMarker) ;
+                                    changeStatus1("[API] Tower[CellID="+ctiMan.getCellId()+"][CellLac="+ctiMan.getCellLac()+"] \n"+
+                                            "(MMC,MNC="+ctiMan.getMcc()+"," +ctiMan.getMnc()+")"+
+                                            "("+ DateFormat.getDateTimeInstance().format(new Date())+")");
+                                    myDB.insertData(ctiMan) ;
+                                }
+                                catch(Exception ex)
+                                {
+                                    changeStatus1("Πρόβλημα κατά την διάρκεια εύρεσης πληροφοριών\nτοποθεσίας.Ελέγξτε την σύνδεση σας με το internet!",true) ;
+                                    refreshFailed = true ;
+                                    changeStatus2("Σταμάτησε η αυτόματη ανανέωση!",false) ;
+                                    stopRepeatingTask();
+                                }
+                                setRefreshBusy(false) ;
                             }
-
-                            ctiMan.setInfo(info);
-                            curMarker= setMarker(ctiMan.getAllInfo(), lat, lon,true);
-                            tStatus1.setText("Tower[CellID="+ctiMan.getCellId()+"][CellLac="+ctiMan.getCellLac()+"] \n"+
-                                    "(MMC,MNC="+ctiMan.getMcc()+"," +ctiMan.getMnc()+")"+
-                                    "("+ DateFormat.getDateTimeInstance().format(new Date())+")");
-                            myDB.insertData(ctiMan) ;
-                            pbCheckbar.setVisibility(View.GONE);
-                            refreshIsBusy = false ;
-
-                        }
-                    }, 3000);
+                        }, 3000);
+                    }
+                    else
+                    {
+                        changeStatus1("Πρόβλημα κατά την διάρκεια επικοινωνίας με το API!",true) ;
+                        Shared.showToast(this,"Πρόβλημα κατά την διάρκεια επικοινωνίας με το API!");
+                        setRefreshBusy(false) ;
+                        refreshFailed = true ;
+                        stopRepeatingTask();
+                    }
                 }
             }
         }
         else
-            Toast.makeText(this, "Refresh operation is busy", Toast.LENGTH_LONG).show();
+            Shared.showToast(this, "Refresh operation is busy");
     }
 
+    private void changeStatus1(String message)
+    {
+        changeStatus1(message,false);
+    }
+
+    private void changeStatus1(String message, boolean redColor)
+    {
+        tStatus1.setText(message) ;
+        if (redColor)
+            tStatus1.setTextColor(Color.RED);
+        else
+            tStatus1.setTextColor(Color.BLUE);
+    }
+
+    private void changeStatus2(String message)
+    {
+        changeStatus2(message,true);
+    }
+
+    private void changeStatus2(String message, boolean greenColor)
+    {
+        tStatus2.setText(message) ;
+        if (greenColor)
+            tStatus2.setTextColor(Color.GREEN);
+        else
+            tStatus2.setTextColor(Color.RED);
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (v==bRefresh)
+        {
+            if (refreshFailed)
+            {
+                Intent intent = getIntent();
+                finish();
+                startActivity(intent);
+            }
+            else
+                refresh();
+        }
+        else if (v==bZoomCellTower)
+        {
+            viewAllCellTowersOperation(!viewAllCellTowers);
+        }
+        else if (v==bZoomGPS)
+        {
+            zoomOperation(!zoomGPS) ;
+        }
+        else if (v==bTEI)
+        {
+            Intent nAct = new Intent(Main.this, SplashScreen.class);
+            startActivity(nAct);
+        }
+        else if (v==bviewAllCellTowers)
+        {
+            Intent nAct = new Intent(Main.this, ViewCellTowerInfo.class);
+            //nAct.putExtras(manQuestions.getBundleOfResults()) ;
+            startActivity(nAct);
+        }
+    }
+
+    Marker curMarker ;
+    private Marker setMarker(String info,double lat, double lng)
+    {
+        return setMarker(info,lat,lng,false);
+    }
+    private Marker setMarker(String info,double lat, double lng,boolean isCurrent)
+    {
+        MarkerOptions options = new MarkerOptions()
+                .title(info)
+                .position(new LatLng(lat,lng))
+                .icon(BitmapDescriptorFactory.fromResource((isCurrent)?R.mipmap.celltower2now:R.mipmap.celltower2));
+
+        return mGoogleMap.addMarker(options) ;
+    }
+
+    private void removeMarker(CellTowerManager ctm )
+    {
+        if (hmAllMarkers.get(ctm.getCellTowerAppID())!=null)
+            hmAllMarkers.get(ctm.getCellTowerAppID()).remove();
+    }
+
+    boolean viewAllCellTowers = false;
+    private void viewAllCellTowersOperation(boolean viewAll)
+    {
+        viewAllCellTowers = viewAll;
+        mGoogleMap.clear();
+        if (curMarker!=null)
+            setMarker(curMarker.getTitle(),curMarker.getPosition().latitude,curMarker.getPosition().longitude,true) ;
+        if (viewAllCellTowers)
+        {
+            bZoomCellTower.setImageResource(R.mipmap.zoomcelltower);
+            ArrayList<CellTowerManager> alAllCellsTower = myDB.getAllCellTowers() ;
+            for(CellTowerManager ctm : alAllCellsTower){
+                if (!ctm.getCellTowerAppID().equals(ctiMan.getCellTowerAppID()))
+                    hmAllMarkers.put(ctm.getCellTowerAppID(), setMarker(ctm.getAllInfo(),ctm.getLat(),ctm.getLon()));
+            }
+        }
+        else
+            bZoomCellTower.setImageResource(R.mipmap.zoomcelltowerdis);
+
+
+    }
+
+    boolean zoomGPS = true ;
+    private void zoomOperation(boolean isGPSzoom)
+    {
+        zoomGPS = isGPSzoom ;
+        if (zoomGPS)
+            bZoomGPS.setImageResource(R.mipmap.zoomgps);
+        else
+            bZoomGPS.setImageResource(R.mipmap.zoomgpsdis);
+    }
+
+    //Map:
     private void initMap() {
         MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.mapFragment);
         mapFragment.getMapAsync(this);
     }
 
-    public boolean googleServicesAvailable() {
-        GoogleApiAvailability api = GoogleApiAvailability.getInstance();
-        int isAvailable = api.isGooglePlayServicesAvailable(this);
-        if (isAvailable == ConnectionResult.SUCCESS)
-            return true;
-        else if (api.isUserResolvableError(isAvailable)) {
-            Dialog dialog = api.getErrorDialog(this, isAvailable, 0);
-            dialog.show();
-        } else
-            Toast.makeText(this, "Cant connect to play services", Toast.LENGTH_LONG).show();
-        return false;
-    }
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mGoogleMap = googleMap;
-        //goToLocationZoom(38.003117, 23.677586, 15);
-
         if (mGoogleMap!=null)
         {
             mGoogleMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
@@ -266,7 +375,6 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                     return v;
                 }
             });
-
         }
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -288,21 +396,6 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                 .build();
 
         mGoogleApiClient.connect();
-    }
-
-    Marker curMarker ;
-    private Marker setMarker(String info,double lat, double lng)
-    {
-        return setMarker(info,lat,lng,false);
-    }
-    private Marker setMarker(String info,double lat, double lng,boolean isCurrent)
-    {
-        MarkerOptions options = new MarkerOptions()
-                .title(info)
-                .position(new LatLng(lat,lng))
-                .icon(BitmapDescriptorFactory.fromResource((isCurrent)?R.mipmap.celltowernow:R.mipmap.celltower));
-
-        return mGoogleMap.addMarker(options) ;
     }
 
     @Override
@@ -335,8 +428,7 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
         return super.onOptionsItemSelected(item);
     }
 
-    LocationRequest mLocationRequest;
-
+    private LocationRequest mLocationRequest;
     @Override
     public void onConnected(@Nullable Bundle bundle) {
         mLocationRequest = LocationRequest.create();
@@ -358,7 +450,6 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
 
     @Override
     public void onConnectionSuspended(int i) {
-
     }
 
     @Override
@@ -369,7 +460,7 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
     @Override
     public void onLocationChanged(Location location) {
         if(location==null){
-            Toast.makeText(this, "Cant get current location!!", Toast.LENGTH_LONG).show();
+            Shared.showToast(this, "Cant get current location!");
         }
         else
         {
@@ -384,59 +475,5 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                         Double.parseDouble(CellTowerLocManager.getInstance().getCellTowerLocation().getLon()));
             }*/
         }
-    }
-
-    ArrayList<Marker> alAllMarkers ;
-    @Override
-    public void onClick(View v) {
-        if (v==bRefresh)
-        {
-            refresh();
-        }
-        else if (v==bZoomCellTower)
-        {
-            viewAllCellTowersOperation(!viewAllCellTowers);
-        }
-        else if (v==bZoomGPS)
-        {
-            zoomOperation(!zoomGPS) ;
-        }
-        else if (v==bTEI)
-        {
-        }
-        else if (v==bviewAllCellTowers)
-        {
-            Intent nAct = new Intent(Main.this, viewCellTowerInfo.class);
-            //nAct.putExtras(manQuestions.getBundleOfResults()) ;
-            startActivity(nAct);
-        }
-    }
-
-    boolean viewAllCellTowers = false;
-    private void viewAllCellTowersOperation(boolean viewAll)
-    {
-        viewAllCellTowers = viewAll;
-        mGoogleMap.clear();
-        setMarker(curMarker.getTitle(),curMarker.getPosition().latitude,curMarker.getPosition().longitude,true) ;
-        if (viewAllCellTowers)
-        {
-            bZoomCellTower.setImageResource(R.mipmap.zoomcelltower);
-            ArrayList<CellTowerManager> alAllCellsTower = myDB.getAllCellTowers() ;
-            for(CellTowerManager ctm : alAllCellsTower){
-                alAllMarkers.add(setMarker(ctm.getAllInfo(),ctm.getLat(),ctm.getLon()));
-            }
-        }
-        else
-            bZoomCellTower.setImageResource(R.mipmap.zoomcelltowerdis);
-    }
-
-    boolean zoomGPS = true ;
-    private void zoomOperation(boolean isGPSzoom)
-    {
-        zoomGPS = isGPSzoom ;
-        if (zoomGPS)
-            bZoomGPS.setImageResource(R.mipmap.zoomgps);
-        else
-            bZoomGPS.setImageResource(R.mipmap.zoomgpsdis);
     }
 }
