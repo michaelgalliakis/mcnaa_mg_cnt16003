@@ -33,7 +33,7 @@ public class CellTowerLocation {
         status = "Not Ready";
     }
 
-    /* Debug Tool:
+    // Debug Tool:
     public void printValues()
     {
         if (status.equals("ok")) {
@@ -48,7 +48,7 @@ public class CellTowerLocation {
             Log.i(TAG, message);
             Log.i(TAG, help);
         }
-    } */
+    }
 
     public boolean isStatusOK()
     {

@@ -101,7 +101,6 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                 ctiMan = new CellTowerManager();
                 geoCoder= new Geocoder(this);
                 initMap();
-                timerHandler.postDelayed(timerRunnable, 0);
 
                 bRefresh = (ImageButton) findViewById(R.id.refresh);
                 bviewAllCellTowers = (ImageButton) findViewById(R.id.allCellTowers);
@@ -123,6 +122,8 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                 tStatus2.setText("") ;
                 hmAllMarkers = new HashMap<>();
                 myDB = new DBHandler(this) ;
+
+                timerHandler.postDelayed(timerRunnable, 0);
             } else
                 Shared.fatalError(this,"Not google services available!");
         }
@@ -141,29 +142,28 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
             pbCheckbar.setVisibility(View.GONE);
     }
     private boolean refreshFailed = false ;
+    private CellTowerManager lastCTM ;
     private void refresh()
     {
         changeStatus2("Τελευταία ανανέωση: ["+ DateFormat.getDateTimeInstance().format(new Date())+"]");
         if (!refreshIsBusy) {
-            if (ctiMan.reload(telephonyManager))
+            lastCTM = ctiMan.clone();
+            if (ctiMan.reload(telephonyManager)==1)
             {
                 changeStatus1("Άλλαξε ο σταθμός βάσης!") ;
                 setRefreshBusy(true) ;
                 CellTowerManager ctm = myDB.getCellTower(ctiMan.getCellId(),ctiMan.getCellLac(),ctiMan.getMcc(),ctiMan.getMnc()) ;
 
-                if (curMarker!=null){
-                    if (viewAllCellTowers)
-                        hmAllMarkers.put(ctiMan.getCellTowerAppID(), setMarker(curMarker.getTitle(),curMarker.getPosition().latitude,curMarker.getPosition().longitude)) ;
-                    //Σβήνεται ο παλιός σταθμός βάσης!
-                    curMarker.remove();
-                }
+                if (viewAllCellTowers)
+                    setMarker(lastCTM);
+                else
+                    removeMarker(lastCTM);
 
                 if (ctm!=null)
                 {
                     changeStatus1("O σταθμός βάσης βρέθηκε στην DB!") ;
                     ctiMan = ctm ;
-                    curMarker=setMarker(ctiMan.getAllInfo(), ctiMan.getLat(), ctiMan.getLon(),true);
-                    hmAllMarkers.put(ctiMan.getCellTowerAppID(),curMarker) ;
+                    setMarker(ctiMan,true);
                     changeStatus1("[DB] MTower[CellID="+ctiMan.getCellId()+"][CellLac="+ctiMan.getCellLac()+"] \n"+
                             "(MMC,MNC="+ctiMan.getMcc()+"," +ctiMan.getMnc()+")"+
                             "("+ DateFormat.getDateTimeInstance().format(new Date())+")");
@@ -192,8 +192,7 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                                     info += "\nPostalCode: "+ geoCoder.getFromLocation(lat, lon, 1).get(0).getPostalCode();
                                     ctiMan.setInfo(info);
 
-                                    curMarker= setMarker(ctiMan.getAllInfo(), lat, lon,true);
-                                    hmAllMarkers.put(ctiMan.getCellTowerAppID(),curMarker) ;
+                                    setMarker(ctiMan,true);
                                     changeStatus1("[API] Tower[CellID="+ctiMan.getCellId()+"][CellLac="+ctiMan.getCellLac()+"] \n"+
                                             "(MMC,MNC="+ctiMan.getMcc()+"," +ctiMan.getMnc()+")"+
                                             "("+ DateFormat.getDateTimeInstance().format(new Date())+")");
@@ -203,8 +202,8 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                                 {
                                     changeStatus1("Πρόβλημα κατά την διάρκεια εύρεσης πληροφοριών\nτοποθεσίας.Ελέγξτε την σύνδεση σας με το internet!",true) ;
                                     refreshFailed = true ;
-                                    changeStatus2("Σταμάτησε η αυτόματη ανανέωση!",false) ;
                                     stopRepeatingTask();
+                                    changeStatus2("Σταμάτησε η αυτόματη ανανέωση!",false) ;
                                 }
                                 setRefreshBusy(false) ;
                             }
@@ -217,8 +216,18 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
                         setRefreshBusy(false) ;
                         refreshFailed = true ;
                         stopRepeatingTask();
+                        changeStatus2("Σταμάτησε η αυτόματη ανανέωση!",false) ;
                     }
                 }
+            }
+            else  if (ctiMan.reload(telephonyManager)==-1)
+            {
+                changeStatus1("Πρόβλημα κατά την διάρκεια επικοινωνίας με το σταθμό βάσης!",true) ;
+                Shared.showToast(this,"Πρόβλημα κατά την διάρκεια επικοινωνίας με το σταθμό βάσης!");
+                setRefreshBusy(false) ;
+                refreshFailed = true ;
+                stopRepeatingTask();
+                changeStatus2("Σταμάτησε η αυτόματη ανανέωση!",false) ;
             }
         }
         else
@@ -286,12 +295,12 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
             startActivity(nAct);
         }
     }
-
-    Marker curMarker ;
+/*
     private Marker setMarker(String info,double lat, double lng)
     {
         return setMarker(info,lat,lng,false);
     }
+
     private Marker setMarker(String info,double lat, double lng,boolean isCurrent)
     {
         MarkerOptions options = new MarkerOptions()
@@ -301,32 +310,57 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
 
         return mGoogleMap.addMarker(options) ;
     }
+*/
+    private void setMarker(CellTowerManager ctm)
+    {
+        setMarker(ctm,false) ;
+    }
+
+    private void setMarker(CellTowerManager ctm,boolean isCurrent)
+    {
+        removeMarker(ctm);
+        MarkerOptions options = new MarkerOptions()
+                .title(ctm.getAllInfo())
+                .position(new LatLng(ctm.getLat(),ctm.getLon()))
+                .icon(BitmapDescriptorFactory.fromResource((isCurrent)?R.mipmap.celltower2now:R.mipmap.celltower2));
+
+        hmAllMarkers.put(ctm.getCellTowerAppID(),mGoogleMap.addMarker(options)) ;
+    }
 
     private void removeMarker(CellTowerManager ctm )
     {
         if (hmAllMarkers.get(ctm.getCellTowerAppID())!=null)
             hmAllMarkers.get(ctm.getCellTowerAppID()).remove();
     }
+    private void removeAllMarkers()
+    {
+        mGoogleMap.clear();
+        hmAllMarkers.clear();
+    }
 
     boolean viewAllCellTowers = false;
     private void viewAllCellTowersOperation(boolean viewAll)
     {
         viewAllCellTowers = viewAll;
-        mGoogleMap.clear();
-        if (curMarker!=null)
-            setMarker(curMarker.getTitle(),curMarker.getPosition().latitude,curMarker.getPosition().longitude,true) ;
+        removeAllMarkers();
+        //if (curMarker!=null)
+            //setMarker(curMarker.getTitle(),curMarker.getPosition().latitude,curMarker.getPosition().longitude,true) ;
         if (viewAllCellTowers)
         {
             bZoomCellTower.setImageResource(R.mipmap.zoomcelltower);
             ArrayList<CellTowerManager> alAllCellsTower = myDB.getAllCellTowers() ;
             for(CellTowerManager ctm : alAllCellsTower){
                 if (!ctm.getCellTowerAppID().equals(ctiMan.getCellTowerAppID()))
-                    hmAllMarkers.put(ctm.getCellTowerAppID(), setMarker(ctm.getAllInfo(),ctm.getLat(),ctm.getLon()));
+                    setMarker(ctm);
+                else
+                    setMarker(ctiMan,true);
             }
         }
         else
+        {
             bZoomCellTower.setImageResource(R.mipmap.zoomcelltowerdis);
-
+            setMarker(ctiMan,true);
+        }
 
     }
 
@@ -346,6 +380,7 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
         mapFragment.getMapAsync(this);
     }
 
+    Marker lastOpenned = null;
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mGoogleMap = googleMap;
@@ -368,11 +403,44 @@ public class Main extends AppCompatActivity implements OnMapReadyCallback, Googl
 
                     LatLng ll = marker.getPosition() ;
                     tvLocality.setText(marker.getTitle());
+
+                    ll = new LatLng(ll.latitude+0.005,ll.longitude); //0.005 για
+                    CameraUpdate update = CameraUpdateFactory.newLatLngZoom(ll,15) ;
+                    mGoogleMap.animateCamera(update);
+
+
                     //tvLat.setText("Latitude: "+ll.latitude);
                     //tvLng.setText("Longitude: "+ll.longitude);
                     //tvSnippet.setText(marker.getSnippet());
 
                     return v;
+                }
+            });
+
+            mGoogleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+                @Override
+                public boolean onMarkerClick(Marker marker) {
+                    // Check if there is an open info window
+                    if (lastOpenned != null) {
+                        // Close the info window
+                        lastOpenned.hideInfoWindow();
+
+                        // Is the marker the same marker that was already open
+                        if (lastOpenned.equals(marker)) {
+                            // Nullify the lastOpenned object
+                            lastOpenned = null;
+                            // Return so that the info window isn't openned again
+                            return true;
+                        }
+                    }
+
+                    // Open the info window for the marker
+                    marker.showInfoWindow();
+                    // Re-assign the last openned such that we can close it later
+                    lastOpenned = marker;
+
+                    // Event was handled by our code do not launch default behaviour.
+                    return true;
                 }
             });
         }

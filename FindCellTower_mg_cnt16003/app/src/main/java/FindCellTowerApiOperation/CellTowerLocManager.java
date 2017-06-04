@@ -61,7 +61,7 @@ public class CellTowerLocManager {
     }
     private void updateCellTowerLocation(CellTowerLocation ctl) {
         cellTowerLocation = ctl ;
-        //cellTowerLocation.printValues();
+        cellTowerLocation.printValues();
     }
 
     public CellTowerLocation getCellTowerLocation() {

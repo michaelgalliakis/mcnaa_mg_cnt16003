@@ -45,44 +45,56 @@ public class CellTowerManager {
         this.info = info;
         this.updatedate = updatedate;
     }
-
-    public boolean reload(TelephonyManager tm) //return true if there are new values
+    public CellTowerManager clone()
     {
-        boolean areThereNewValues = false ;
+        CellTowerManager ctm = new CellTowerManager(cellId,cellLac,mcc,mnc,lat,lon,info,updatedate) ;
+        return ctm ;
+    }
 
-        cellLocation = (GsmCellLocation)tm.getCellLocation();
-        networkOperator = tm.getNetworkOperator();
-        //Log.i("Mike",cellId +" "+ cellLocation.getCid());
-        if (cellLocation.getCid()!=cellId)
+    public int reload(TelephonyManager tm) //return true if there are new values
+    {
+        int areThereNewValues = 0 ;
+
+        try
         {
-            cellId = cellLocation.getCid();
-            areThereNewValues = true ;
-        }
-        //Log.i("Mike",cellLac +" "+ cellLocation.getLac());
-        if (cellLocation.getLac()!=cellLac)
-        {
-            cellLac = cellLocation.getLac();
-            areThereNewValues = true ;
-        }
-        if (!TextUtils.isEmpty(networkOperator)) {
-            //Log.i("Mike",mcc +" "+ networkOperator.substring(0, 3));
-            if (!String.valueOf(networkOperator.substring(0, 3)).equals(mcc))
+            cellLocation = (GsmCellLocation)tm.getCellLocation();
+            networkOperator = tm.getNetworkOperator();
+            //Log.i("Mike",cellId +" "+ cellLocation.getCid());
+            if (cellLocation.getCid()!=cellId)
             {
-                mcc = networkOperator.substring(0, 3);
-                areThereNewValues = true ;
+                cellId = cellLocation.getCid();
+                areThereNewValues = 1 ;
             }
-            //Log.i("Mike",mnc +" "+ networkOperator.substring(3));
-            if (!String.valueOf(networkOperator.substring(3)).equals(mnc))
+            //Log.i("Mike",cellLac +" "+ cellLocation.getLac());
+            if (cellLocation.getLac()!=cellLac)
             {
-                mnc = networkOperator.substring(3);
-                areThereNewValues = true ;
+                cellLac = cellLocation.getLac();
+                areThereNewValues = 1 ;
+            }
+            if (!TextUtils.isEmpty(networkOperator)) {
+                //Log.i("Mike",mcc +" "+ networkOperator.substring(0, 3));
+                if (!String.valueOf(networkOperator.substring(0, 3)).equals(mcc))
+                {
+                    mcc = networkOperator.substring(0, 3);
+                    areThereNewValues = 1 ;
+                }
+                //Log.i("Mike",mnc +" "+ networkOperator.substring(3));
+                if (!String.valueOf(networkOperator.substring(3)).equals(mnc))
+                {
+                    mnc = networkOperator.substring(3);
+                    areThereNewValues = 1 ;
+                }
+            }
+            else if (!mcc.equals("") || !mnc.equals(""))
+            {
+                mcc = "-1" ;
+                mnc = "-1" ;
+                areThereNewValues = 1 ;
             }
         }
-        else if (!mcc.equals("") || !mnc.equals(""))
+        catch(Exception ex)
         {
-            mcc = "-1" ;
-            mnc = "-1" ;
-            areThereNewValues = true ;
+            areThereNewValues= -1 ;
         }
 
         return areThereNewValues ;
@@ -178,8 +190,9 @@ public class CellTowerManager {
         if(telephonyManager!=null)
         {
             list.add("All Cell Towers (crowth =" +telephonyManager.getAllCellInfo().size() +") [Offline Info]") ;
-            for (String cellTowerInfo : getAllCellTowerInfo(telephonyManager))
-                list.add(cellTowerInfo) ;
+            list.addAll(getAllCellTowerInfo(telephonyManager));
+            /*for (String cellTowerInfo : getAllCellTowerInfo(telephonyManager))
+                list.add(cellTowerInfo) ;*/
         }
 
         return list ;

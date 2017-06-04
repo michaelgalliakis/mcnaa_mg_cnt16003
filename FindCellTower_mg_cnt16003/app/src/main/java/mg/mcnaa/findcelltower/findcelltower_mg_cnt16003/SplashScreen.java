@@ -14,7 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 public class SplashScreen extends AppCompatActivity implements View.OnClickListener {
-    protected static final String STATUS_PER_MESS1 = "Δεν έχετε δώσει τα απαραίτητα\n δικαιώματα στην εφαρμογή!" ;
+    protected static final String STATUS_PER_MESS1 = "Δεν έχετε δώσει τις απαραίτητες\n άδειες στην εφαρμογή!" ;
     private static final String STATUS_PER_MESS2 = "Πηγαίνετε στις ρυθμίσεις της εφαρμογής και επιτρέξετε στην εφαρμογή "+
                                                    "να έχει πρόσβαση σε 'Location', 'Phone' και 'Storage'" ;
     //private static final String STATUS_PER_MESS3 = "Μπορείτε μόνο να δείτε πληροφορίες για τα Cell Towers...";
@@ -89,8 +89,15 @@ public class SplashScreen extends AppCompatActivity implements View.OnClickListe
         }
         else if (v==bviewAllCellTowers)
         {
-            Intent nAct = new Intent(SplashScreen.this, ViewCellTowerInfo.class);
-            startActivity(nAct);
+            if (weHavePermissions) {
+                Intent nAct = new Intent(SplashScreen.this, ViewCellTowerInfo.class);
+                startActivity(nAct);
+            }
+            else
+            {
+                Shared.showToast(this,STATUS_PER_MESS1);
+                Shared.showToast(this,STATUS_PER_MESS2);
+            }
         }
     }
 
