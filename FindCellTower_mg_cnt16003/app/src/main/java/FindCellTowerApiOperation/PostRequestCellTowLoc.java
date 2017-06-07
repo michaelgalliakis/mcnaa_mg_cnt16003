@@ -21,9 +21,9 @@ public class PostRequestCellTowLoc {
         this.token = token;
         this.mcc = mcc;
         this.mnc = mnc;
-        Cells tmp[] = new Cells[1] ;
-        tmp[0] = new Cells(lac,cid) ;
-        this.cells = tmp ;
+        Cells tmp[] = new Cells[1];
+        tmp[0] = new Cells(lac, cid);
+        this.cells = tmp;
     }
 
     public String getToken() {
@@ -61,10 +61,10 @@ public class PostRequestCellTowLoc {
     public class Cells {
         @SerializedName("lac")
         @Expose
-        private int lac ;
+        private int lac;
         @SerializedName("cid")
         @Expose
-        private int cid ;
+        private int cid;
 
         public Cells(int lac, int cid) {
             this.lac = lac;

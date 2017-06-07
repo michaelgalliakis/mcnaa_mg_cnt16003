@@ -9,22 +9,22 @@ public class CellTowerLocation {
     public static final String TAG = CellTowerLocation.class.getSimpleName();
     @SerializedName("status")
     @Expose
-    private String status ;
+    private String status;
     @SerializedName("message")
     @Expose
     private String message;
     @SerializedName("balance")
     @Expose
-    private String balance ;
+    private String balance;
     @SerializedName("lat")
     @Expose
-    private String lat ;
+    private String lat;
     @SerializedName("lon")
     @Expose
-    private String lon ;
+    private String lon;
     @SerializedName("accuracy")
     @Expose
-    private String accuracy ;
+    private String accuracy;
     @SerializedName("help")
     @Expose
     private String help = "";
@@ -34,28 +34,25 @@ public class CellTowerLocation {
     }
 
     // Debug Tool:
-    public void printValues()
-    {
+    public void printValues() {
         if (status.equals("ok")) {
             Log.i(TAG, status);
             Log.i(TAG, balance);
             Log.i(TAG, lat);
             Log.i(TAG, lon);
             Log.i(TAG, accuracy);
-        }
-        else {
+        } else {
             Log.i(TAG, status);
             Log.i(TAG, message);
             Log.i(TAG, help);
         }
     }
 
-    public boolean isStatusOK()
-    {
+    public boolean isStatusOK() {
         if ("OK".equals(status.toUpperCase()))
-            return true ;
+            return true;
         else
-            return false ;
+            return false;
     }
 
     public String getStatus() {

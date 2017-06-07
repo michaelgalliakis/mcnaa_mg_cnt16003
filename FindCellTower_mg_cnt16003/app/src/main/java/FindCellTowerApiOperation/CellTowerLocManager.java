@@ -1,6 +1,5 @@
 package FindCellTowerApiOperation;
 
-import android.util.Log;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -13,9 +12,9 @@ public class CellTowerLocManager {
     public static final String TOKEN = "9f9a8862d44ad0";
 
     private static CellTowerLocManager instance;
-    private Retrofit retrofit ;
-    private AppService appService ;
-    private CellTowerLocation cellTowerLocation ;
+    private Retrofit retrofit;
+    private AppService appService;
+    private CellTowerLocation cellTowerLocation;
 
     private CellTowerLocManager() {
         retrofit = new Retrofit.Builder()
@@ -23,20 +22,20 @@ public class CellTowerLocManager {
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         appService = retrofit.create(AppService.class);
-        cellTowerLocation = new CellTowerLocation() ;
+        cellTowerLocation = new CellTowerLocation();
 
     }
 
     public boolean loadCellTowerLocation(String mcc, String mnc, int lac, int cid) {
-        PostRequestCellTowLoc prctl = new PostRequestCellTowLoc(TOKEN,mcc,mnc,lac,cid);
-        try{
+        PostRequestCellTowLoc prctl = new PostRequestCellTowLoc(TOKEN, mcc, mnc, lac, cid);
+        try {
             appService.getCellTowerLocation(prctl).enqueue(new Callback<CellTowerLocation>() {
                 @Override
                 public void onResponse(Call<CellTowerLocation> call, Response<CellTowerLocation> response) {
                     if (response.code() == 200) {
-                        CellTowerLocation ctl = response.body() ;
+                        CellTowerLocation ctl = response.body();
                         //Log.i(TAG, "Cell Tower Location loaded");
-                        getInstance().updateCellTowerLocation(ctl) ;
+                        getInstance().updateCellTowerLocation(ctl);
                     }
                 }
 
@@ -45,13 +44,11 @@ public class CellTowerLocManager {
                     //Log.e(TAG, "Error while posting to the api" + t.getMessage());
                 }
             });
-        }
-        catch(Exception ex)
-        {
-            return false ;
+        } catch (Exception ex) {
+            return false;
         }
 
-        return true ;
+        return true;
         /*
         //Debug
         cellTowerLocation = new CellTowerLocation() ;
@@ -59,8 +56,9 @@ public class CellTowerLocManager {
         cellTowerLocation.setLon("23.670017");
         */
     }
+
     private void updateCellTowerLocation(CellTowerLocation ctl) {
-        cellTowerLocation = ctl ;
+        cellTowerLocation = ctl;
         cellTowerLocation.printValues();
     }
 
@@ -68,9 +66,9 @@ public class CellTowerLocManager {
         return cellTowerLocation;
     }
 
-    public static synchronized CellTowerLocManager getInstance(){
+    public static synchronized CellTowerLocManager getInstance() {
         if (instance == null)
-            instance = new CellTowerLocManager() ;
+            instance = new CellTowerLocManager();
 
         return instance;
     }

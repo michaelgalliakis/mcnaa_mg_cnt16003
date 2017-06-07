@@ -5,4 +5,5 @@
     <string name="map_type_terrain">Terrain</string>
     <string name="map_type_satellite">Satellite</string>
     <string name="map_type_hybrid">Hybrid</string>
+    <string name="msg">Ενεργοποιήστε όλες τις άδειες</string>
 </resources>
