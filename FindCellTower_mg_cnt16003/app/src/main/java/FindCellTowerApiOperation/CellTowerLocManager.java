@@ -27,6 +27,7 @@ public class CellTowerLocManager {
     }
 
     public boolean loadCellTowerLocation(String mcc, String mnc, int lac, int cid) {
+        boolean returnValue = true;
         PostRequestCellTowLoc prctl = new PostRequestCellTowLoc(TOKEN, mcc, mnc, lac, cid);
         try {
             appService.getCellTowerLocation(prctl).enqueue(new Callback<CellTowerLocation>() {
@@ -45,16 +46,10 @@ public class CellTowerLocManager {
                 }
             });
         } catch (Exception ex) {
-            return false;
+            returnValue = false;
         }
 
-        return true;
-        /*
-        //Debug
-        cellTowerLocation = new CellTowerLocation() ;
-        cellTowerLocation.setLat("38.004933");
-        cellTowerLocation.setLon("23.670017");
-        */
+        return returnValue;
     }
 
     private void updateCellTowerLocation(CellTowerLocation ctl) {

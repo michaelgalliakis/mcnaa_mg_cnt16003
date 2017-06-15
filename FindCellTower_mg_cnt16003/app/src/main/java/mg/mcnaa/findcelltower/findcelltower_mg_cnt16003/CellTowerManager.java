@@ -49,7 +49,7 @@ public class CellTowerManager {
         return ctm;
     }
 
-    public int reload(TelephonyManager tm) //return true if there are new values
+    public int reload(TelephonyManager tm) //return 1 if there are new values, -1 if there is error
     {
         int areThereNewValues = 0;
 
@@ -176,8 +176,6 @@ public class CellTowerManager {
         if (telephonyManager != null) {
             list.add("All Cell Towers (crowth =" + telephonyManager.getAllCellInfo().size() + ") [Offline Info]");
             list.addAll(getAllCellTowerInfo(telephonyManager));
-            /*for (String cellTowerInfo : getAllCellTowerInfo(telephonyManager))
-                list.add(cellTowerInfo) ;*/
         }
 
         return list;

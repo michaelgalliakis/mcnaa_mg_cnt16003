@@ -152,7 +152,8 @@ public class Main extends AbsRuntimePermission implements OnMapReadyCallback, Go
         changeStatus2("Τελευταία ανανέωση: [" + DateFormat.getDateTimeInstance().format(new Date()) + "]");
         if (!refreshIsBusy) {
             lastCTM = ctiMan.clone();
-            if (ctiMan.reload(telephonyManager) == 1) {
+            int res = ctiMan.reload(telephonyManager) ;
+            if (res == 1) {
                 changeStatus1("Άλλαξε ο σταθμός βάσης!");
                 setRefreshBusy(true);
                 CellTowerManager ctm = myDB.getCellTower(ctiMan.getCellId(), ctiMan.getCellLac(), ctiMan.getMcc(), ctiMan.getMnc());
@@ -213,7 +214,7 @@ public class Main extends AbsRuntimePermission implements OnMapReadyCallback, Go
                         changeStatus2("Σταμάτησε η αυτόματη ανανέωση!", false);
                     }
                 }
-            } else if (ctiMan.reload(telephonyManager) == -1) {
+            } else if (res == -1) {
                 changeStatus1("Πρόβλημα κατά την διάρκεια επικοινωνίας με το σταθμό βάσης!", true);
                 Shared.showToast(this, "Πρόβλημα κατά την διάρκεια επικοινωνίας με το σταθμό βάσης!");
                 setRefreshBusy(false);
@@ -317,8 +318,6 @@ public class Main extends AbsRuntimePermission implements OnMapReadyCallback, Go
     private void viewAllCellTowersOperation(boolean viewAll) {
         viewAllCellTowers = viewAll;
         removeAllMarkers();
-        //if (curMarker!=null)
-        //setMarker(curMarker.getTitle(),curMarker.getPosition().latitude,curMarker.getPosition().longitude,true) ;
         if (viewAllCellTowers) {
             bZoomCellTower.setImageResource(R.mipmap.zoomcelltower);
             ArrayList<CellTowerManager> alAllCellsTower = myDB.getAllCellTowers();
@@ -346,12 +345,12 @@ public class Main extends AbsRuntimePermission implements OnMapReadyCallback, Go
     }
 
     //Map:
+    Marker lastOpenned = null;
+
     private void initMap() {
         MapFragment mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.mapFragment);
         mapFragment.getMapAsync(this);
     }
-
-    Marker lastOpenned = null;
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
